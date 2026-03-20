@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Wijnjournal" />
+  <title>Cave Privée — Wijnjournal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #0d0d0d; min-height: 100vh; }
+    body { -webkit-tap-highlight-color: transparent; }
+    button { -webkit-tap-highlight-color: transparent; font-family: Georgia, serif; }
+    select option { background: #161616; }
+    input::placeholder { color: #333; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #222; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const STORAGE_KEY = "cave_privee_v1";
+    const gold = "#C9A84C";
+
+    const DB = [
+      { name:"Barolo", producer:"Gaja", type:"Rood", region:"Piemonte", country:"Italië", grapes:"Nebbiolo" },
+      { name:"Barbaresco", producer:"Gaja", type:"Rood", region:"Piemonte", country:"Italië", grapes:"Nebbiolo" },
+      { name:"Brunello di Montalcino", producer:"Biondi-Santi", type:"Rood", region:"Toscana", country:"Italië", grapes:"Sangiovese" },
+      { name:"Chianti Classico", producer:"Antinori", type:"Rood", region:"Toscana", country:"Italië", grapes:"Sangiovese" },
+      { name:"Ornellaia", producer:"Ornellaia", type:"Rood", region:"Bolgheri", country:"Italië", grapes:"Cabernet Sauvignon, Merlot" },
+      { name:"Sassicaia", producer:"San Guido", type:"Rood", region:"Bolgheri", country:"Italië", grapes:"Cabernet Sauvignon" },
+      { name:"Amarone", producer:"Allegrini", type:"Rood", region:"Veneto", country:"Italië", grapes:"Corvina" },
+      { name:"Langhe Arneis", producer:"Bruno Giacosa", type:"Wit", region:"Piemonte", country:"Italië", grapes:"Arneis" },
+      { name:"Gavi di Gavi", producer:"La Scolca", type:"Wit", region:"Piemonte", country:"Italië", grapes:"Cortese" },
+      { name:"Soave Classico", producer:"Pieropan", type:"Wit", region:"Veneto", country:"Italië", grapes:"Garganega" },
+      { name:"Vermentino", producer:"Argiolas", type:"Wit", region:"Sardegna", country:"Italië", grapes:"Vermentino" },
+      { name:"Château Margaux", producer:"Château Margaux", type:"Rood", region:"Bordeaux", country:"Frankrijk", grapes:"Cabernet Sauvignon" },
+      { name:"Château Lynch-Bages", producer:"Cazes", type:"Rood", region:"Pauillac", country:"Frankrijk", grapes:"Cabernet Sauvignon" },
+      { name:"Gevrey-Chambertin", producer:"Rossignol-Trapet", type:"Rood", region:"Bourgogne", country:"Frankrijk", grapes:"Pinot Noir" },
+      { name:"Chambolle-Musigny", producer:"Roumier", type:"Rood", region:"Bourgogne", country:"Frankrijk", grapes:"Pinot Noir" },
+      { name:"Châteauneuf-du-Pape", producer:"Château Rayas", type:"Rood", region:"Rhône", country:"Frankrijk", grapes:"Grenache" },
+      { name:"Côtes du Rhône", producer:"Guigal", type:"Rood", region:"Rhône", country:"Frankrijk", grapes:"Grenache, Syrah" },
+      { name:"Sancerre", producer:"Henri Bourgeois", type:"Wit", region:"Loire", country:"Frankrijk", grapes:"Sauvignon Blanc" },
+      { name:"Pouilly-Fumé", producer:"Dagueneau", type:"Wit", region:"Loire", country:"Frankrijk", grapes:"Sauvignon Blanc" },
+      { name:"Chablis Premier Cru", producer:"William Fèvre", type:"Wit", region:"Bourgogne", country:"Frankrijk", grapes:"Chardonnay" },
+      { name:"Meursault", producer:"Comtes Lafon", type:"Wit", region:"Bourgogne", country:"Frankrijk", grapes:"Chardonnay" },
+      { name:"Puligny-Montrachet", producer:"Leflaive", type:"Wit", region:"Bourgogne", country:"Frankrijk", grapes:"Chardonnay" },
+      { name:"Rioja Reserva", producer:"La Rioja Alta", type:"Rood", region:"Rioja", country:"Spanje", grapes:"Tempranillo" },
+      { name:"Rioja Gran Reserva", producer:"CVNE", type:"Rood", region:"Rioja", country:"Spanje", grapes:"Tempranillo" },
+      { name:"Albariño", producer:"Pazo de Señoráns", type:"Wit", region:"Rías Baixas", country:"Spanje", grapes:"Albariño" },
+      { name:"Riesling Spätlese", producer:"Dr. Loosen", type:"Wit", region:"Mosel", country:"Duitsland", grapes:"Riesling" },
+      { name:"Grüner Veltliner", producer:"Hirsch", type:"Wit", region:"Kamptal", country:"Oostenrijk", grapes:"Grüner Veltliner" },
+      { name:"Malbec", producer:"Achaval Ferrer", type:"Rood", region:"Mendoza", country:"Argentinië", grapes:"Malbec" },
+      { name:"Shiraz Barossa", producer:"Penfolds", type:"Rood", region:"Barossa Valley", country:"Australië", grapes:"Shiraz" },
+      { name:"Champagne Brut", producer:"Moët & Chandon", type:"Mousserend", region:"Champagne", country:"Frankrijk", grapes:"Chardonnay, Pinot Noir" },
+      { name:"Champagne Rosé", producer:"Billecart-Salmon", type:"Mousserend", region:"Champagne", country:"Frankrijk", grapes:"Pinot Noir" },
+      { name:"Prosecco", producer:"Bisol", type:"Mousserend", region:"Veneto", country:"Italië", grapes:"Glera" },
+      { name:"Provence Rosé", producer:"Château d'Esclans", type:"Rosé", region:"Provence", country:"Frankrijk", grapes:"Grenache, Cinsault" },
+      { name:"Sauternes", producer:"Château d'Yquem", type:"Dessertwijn", region:"Sauternes", country:"Frankrijk", grapes:"Sémillon" },
+      { name:"Porto Vintage", producer:"Quinta do Crasto", type:"Dessertwijn", region:"Douro", country:"Portugal", grapes:"Touriga Nacional" },
+    ];
+
+    const RATINGS = [
+      { value:1, emoji:"👎", label:"Slecht", color:"#a05050", bg:"#a0505018" },
+      { value:2, emoji:"👍", label:"Lekker", color:"#7ab870", bg:"#7ab87018" },
+      { value:3, emoji:"👍👍", label:"Top — in mijn kelder!", color:gold, bg:gold+"18" },
+    ];
+
+    const WINE_TYPES = ["Rood","Wit","Rosé","Mousserend","Dessertwijn","Oranje"];
+
+    function dbSearch(q) {
+      const low = q.toLowerCase().trim();
+      return DB.map(w => {
+        const hay = (w.name+" "+w.producer+" "+w.region+" "+w.country+" "+w.grapes+" "+w.type).toLowerCase();
+        let score = 0;
+        if (w.name.toLowerCase().startsWith(low)) score += 50;
+        if (w.name.toLowerCase().includes(low)) score += 20;
+        if (hay.includes(low)) score += 10;
+        low.split(" ").forEach(t => { if (t.length>1 && hay.includes(t)) score += 5; });
+        return { ...w, score };
+      }).filter(w => w.score>0).sort((a,b)=>b.score-a.score).slice(0,6);
+    }
+
+    function WineCard({ wine, onDelete }) {
+      const tc = { Rood:"#8B1A1A", Wit:"#C8A84C", Rosé:"#C47878", Mousserend:"#6a9ab0", Dessertwijn:"#B8860B", Oranje:"#C08040" };
+      const c = tc[wine.type] || gold;
+      const r = RATINGS.find(x => x.value===wine.rating);
+      return (
+        <div style={{ background:"#161616", border:"1px solid #222", borderRadius:12, marginBottom:10, overflow:"hidden" }}>
+          <div style={{ height:3, background:r?r.color:c }} />
+          <div style={{ padding:"14px 16px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+              <div style={{ flex:1 }}>
+                <div style={{ color:"#f0e8d8", fontSize:17, fontWeight:600 }}>{wine.name}</div>
+                <div style={{ color:"#555", fontSize:13, marginTop:3 }}>
+                  {[wine.producer, wine.vintage, wine.region, wine.country].filter(Boolean).join(" · ")}
+                </div>
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginLeft:10 }}>
+                {r && <span style={{ fontSize:24 }}>{r.emoji}</span>}
+                <button onClick={() => onDelete(wine.id)}
+                  style={{ background:"none", border:"none", color:"#444", fontSize:22, cursor:"pointer", padding:"0 4px" }}>×</button>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:6, marginTop:10, flexWrap:"wrap", alignItems:"center" }}>
+              {wine.type && <span style={{ background:c+"25", color:c, borderRadius:4, padding:"3px 10px", fontSize:12 }}>{wine.type}</span>}
+              {wine.grapes && <span style={{ color:"#444", fontSize:12 }}>{wine.grapes}</span>}
+              {r && <span style={{ marginLeft:"auto", color:r.color, fontSize:13, fontStyle:"italic" }}>{r.label}</span>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function SearchStep({ onSelect }) {
+      const [query, setQuery] = useState("");
+      const [suggestions, setSuggestions] = useState([]);
+
+      useEffect(() => {
+        if (query.length >= 2) setSuggestions(dbSearch(query));
+        else setSuggestions([]);
+      }, [query]);
+
+      return (
+        <div>
+          <div style={{ color:"#f0e8d8", fontSize:20, marginBottom:6 }}>Welke wijn?</div>
+          <div style={{ color:"#555", fontSize:14, marginBottom:20, lineHeight:1.6 }}>
+            Typ de naam — ook onbekende wijnen werken.
+          </div>
+          <div style={{ position:"relative", marginBottom:14 }}>
+            <input value={query} onChange={e => setQuery(e.target.value)}
+              placeholder="bijv. Broccardo Langhe Arneis 2024"
+              autoComplete="off" autoCorrect="off" spellCheck="false"
+              style={{ width:"100%", padding:"16px 44px 16px 16px", background:"#161616", border:"1px solid #333", borderRadius:10, color:"#f0e8d8", fontSize:17, fontFamily:"Georgia, serif", outline:"none" }}
+            />
+            {query.length>0 && (
+              <button onClick={() => setQuery("")}
+                style={{ position:"absolute", right:12, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", color:"#444", fontSize:22, cursor:"pointer" }}>×</button>
+            )}
+          </div>
+
+          {suggestions.length > 0 && (
+            <div style={{ background:"#111", borderRadius:10, overflow:"hidden", border:"1px solid #222", marginBottom:14 }}>
+              <div style={{ color:"#333", fontSize:11, padding:"8px 16px 4px", letterSpacing:"0.1em" }}>SUGGESTIES</div>
+              {suggestions.map((w, i) => (
+                <button key={i} onClick={() => onSelect(w)}
+                  style={{ width:"100%", padding:"13px 16px", background:"transparent", border:"none", borderTop:"1px solid #1a1a1a", cursor:"pointer", textAlign:"left", display:"block" }}>
+                  <div style={{ color:"#f0e8d8", fontSize:16, fontFamily:"Georgia, serif" }}>{w.name}</div>
+                  <div style={{ color:"#555", fontSize:12, marginTop:2 }}>{w.producer} · {w.region}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {query.trim().length >= 2 && (
+            <button onClick={() => onSelect({ name:query.trim(), producer:"", type:"", region:"", country:"", grapes:"", vintage:"" })}
+              style={{ width:"100%", padding:"15px 16px", background:"#111", border:`1px solid ${gold}55`, borderRadius:10, cursor:"pointer", textAlign:"left", display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+              <span style={{ fontSize:22 }}>➕</span>
+              <div>
+                <div style={{ color:"#f0e8d8", fontSize:16, fontFamily:"Georgia, serif" }}>"{query.trim()}" toevoegen</div>
+                <div style={{ color:"#555", fontSize:12, marginTop:2 }}>Volgende stap: details invullen</div>
+              </div>
+            </button>
+          )}
+
+          {query.length < 2 && (
+            <>
+              <div style={{ color:"#2a2a2a", fontSize:12, marginBottom:10, letterSpacing:"0.1em" }}>SNELKEUZE</div>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {["Barolo","Sancerre","Rioja","Champagne","Malbec","Chianti","Arneis","Chablis","Prosecco"].map(s => (
+                  <button key={s} onClick={() => setQuery(s)}
+                    style={{ padding:"8px 14px", background:"#111", border:"1px solid #1e1e1e", borderRadius:20, color:"#555", fontSize:14, cursor:"pointer" }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    function DetailsStep({ wine, onConfirm, onBack }) {
+      const [form, setForm] = useState({
+        name: wine.name||"", producer: wine.producer||"", vintage: wine.vintage||"",
+        type: wine.type||"", region: wine.region||"", country: wine.country||"", grapes: wine.grapes||"",
+      });
+      const upd = (k,v) => setForm(f=>({...f,[k]:v}));
+      const inp = (key, ph) => (
+        <input value={form[key]} onChange={e=>upd(key,e.target.value)} placeholder={ph}
+          autoComplete="off" autoCorrect="off" spellCheck="false"
+          style={{ width:"100%", padding:"13px 14px", background:"#161616", border:"1px solid #2a2a2a", borderRadius:8, color:"#f0e8d8", fontSize:15, fontFamily:"Georgia, serif", outline:"none", marginBottom:10 }} />
+      );
+      return (
+        <div>
+          <button onClick={onBack} style={{ background:"none", border:"none", color:"#555", fontSize:14, cursor:"pointer", marginBottom:20, padding:0 }}>← Andere wijn</button>
+          <div style={{ color:"#f0e8d8", fontSize:20, marginBottom:4 }}>Details</div>
+          <div style={{ color:"#555", fontSize:14, marginBottom:20 }}>Pas aan wat nodig is, of laat leeg.</div>
+          {inp("name","Naam wijn")}
+          {inp("producer","Producent")}
+          <div style={{ display:"flex", gap:10 }}>
+            <input value={form.vintage} onChange={e=>upd("vintage",e.target.value)} placeholder="Jaar"
+              style={{ flex:1, padding:"13px 14px", background:"#161616", border:"1px solid #2a2a2a", borderRadius:8, color:"#f0e8d8", fontSize:15, fontFamily:"Georgia, serif", outline:"none", marginBottom:10 }} />
+            <select value={form.type} onChange={e=>upd("type",e.target.value)}
+              style={{ flex:1, padding:"13px 14px", background:"#161616", border:"1px solid #2a2a2a", borderRadius:8, color:form.type?"#f0e8d8":"#555", fontSize:15, fontFamily:"Georgia, serif", outline:"none", marginBottom:10 }}>
+              <option value="">Type...</option>
+              {WINE_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          {inp("region","Regio (bijv. Langhe, Piemonte)")}
+          {inp("country","Land (bijv. Italië)")}
+          {inp("grapes","Druivenras (bijv. Arneis)")}
+          <button onClick={()=>onConfirm(form)} disabled={!form.name.trim()}
+            style={{ width:"100%", padding:"16px", background:form.name.trim()?`linear-gradient(135deg,${gold},#a07830)`:"#111", border:"none", borderRadius:12, color:form.name.trim()?"#0d0d0d":"#333", fontSize:17, fontWeight:700, cursor:form.name.trim()?"pointer":"not-allowed", marginTop:6 }}>
+            Verder → Beoordelen
+          </button>
+        </div>
+      );
+    }
+
+    function RateStep({ wine, onRate, onBack }) {
+      const [rating, setRating] = useState(0);
+      return (
+        <div>
+          <button onClick={onBack} style={{ background:"none", border:"none", color:"#555", fontSize:14, cursor:"pointer", marginBottom:24, padding:0 }}>← Details</button>
+          <div style={{ textAlign:"center", marginBottom:36 }}>
+            <div style={{ color:"#555", fontSize:12, letterSpacing:"0.15em", marginBottom:14 }}>HOE VOND JE DEZE WIJN?</div>
+            <div style={{ color:"#f0e8d8", fontSize:24, fontWeight:600, lineHeight:1.2, marginBottom:4 }}>{wine.name}</div>
+            {(wine.producer||wine.vintage) && (
+              <div style={{ color:"#555", fontSize:14 }}>{[wine.producer,wine.vintage,wine.region].filter(Boolean).join(" · ")}</div>
+            )}
+          </div>
+          <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:32 }}>
+            {RATINGS.map(r => (
+              <button key={r.value} onClick={() => setRating(r.value)}
+                style={{ padding:"20px 24px", border:`2px solid ${rating===r.value?r.color:"#222"}`, borderRadius:14, background:rating===r.value?r.bg:"#111", cursor:"pointer", display:"flex", alignItems:"center", gap:16 }}>
+                <span style={{ fontSize:36 }}>{r.emoji}</span>
+                <div style={{ textAlign:"left" }}>
+                  <div style={{ color:rating===r.value?r.color:"#f0e8d8", fontSize:18, fontFamily:"Georgia, serif", fontWeight:600 }}>{r.label}</div>
+                  {r.value===3 && <div style={{ color:"#555", fontSize:13, marginTop:2 }}>Voeg toe aan mijn wijnkelder</div>}
+                </div>
+                {rating===r.value && <span style={{ marginLeft:"auto", color:r.color, fontSize:22 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>rating&&onRate(rating)} disabled={!rating}
+            style={{ width:"100%", padding:"17px", background:!rating?"#111":`linear-gradient(135deg,${gold},#a07830)`, border:"none", borderRadius:12, color:!rating?"#333":"#0d0d0d", fontSize:17, fontWeight:700, cursor:!rating?"not-allowed":"pointer" }}>
+            ✦ Opslaan in journal
+          </button>
+        </div>
+      );
+    }
+
+    function AITab({ wines }) {
+      const [result, setResult] = useState("");
+      const [loading, setLoading] = useState(false);
+      const [err, setErr] = useState("");
+      const [apiKey, setApiKey] = useState(() => localStorage.getItem("cave_api_key")||"");
+      const [showKey, setShowKey] = useState(false);
+
+      const saveKey = (k) => { setApiKey(k); localStorage.setItem("cave_api_key", k); };
+
+      const analyse = async () => {
+        if (!apiKey.trim()) { setErr("Vul eerst je Anthropic API-sleutel in hieronder."); return; }
+        setLoading(true); setResult(""); setErr("");
+        const rl = r => r===1?"slecht":r===2?"lekker":"uitstekend, in kelder";
+        const summary = wines.map(w=>`${w.name}${w.vintage?" "+w.vintage:""} (${[w.type,w.region,w.grapes].filter(Boolean).join(", ")}): ${rl(w.rating)}.`).join("\n");
+        try {
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
+            method:"POST",
+            headers:{ "Content-Type":"application/json", "x-api-key":apiKey, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
+            body:JSON.stringify({ model:"claude-sonnet-4-5-20251001", max_tokens:900,
+              messages:[{role:"user",content:`Sommelier-analyse:\n\n${summary}\n\nGeef in het Nederlands:\n1. Smaakprofiel (2-3 zinnen)\n2. 5 aanbevelingen met naam, regio en waarom\n3. 1 verrassende ontdekking\n\nWarm en deskundig.`}] }),
+          });
+          if (!res.ok) { const t=await res.text(); throw new Error(t); }
+          const data = await res.json();
+          setResult(data.content?.map(b=>b.text||"").join("")||"Geen antwoord.");
+        } catch(e) { setErr("Fout: "+e.message); }
+        setLoading(false);
+      };
+
+      return (
+        <div>
+          <div style={{ fontSize:22, color:"#f0e8d8", marginBottom:6 }}>Jouw Sommelier</div>
+          <div style={{ color:"#555", fontSize:14, marginBottom:20 }}>AI analyseert jouw smaakprofiel en geeft aanbevelingen.</div>
+
+          {wines.length>0 && (
+            <div style={{ background:"#111", borderRadius:10, padding:16, marginBottom:20, display:"flex", gap:16 }}>
+              <div><div style={{ color:"#333", fontSize:11 }}>WIJNEN</div><div style={{ color:gold, fontSize:20 }}>{wines.length}</div></div>
+              <div><div style={{ color:"#333", fontSize:11 }}>KELDER 👍👍</div><div style={{ color:gold, fontSize:20 }}>{wines.filter(w=>w.rating===3).length}</div></div>
+              <div><div style={{ color:"#333", fontSize:11 }}>LEKKER 👍</div><div style={{ color:gold, fontSize:20 }}>{wines.filter(w=>w.rating===2).length}</div></div>
+            </div>
+          )}
+
+          {/* API key invoer */}
+          <div style={{ background:"#111", border:"1px solid #1e1e1e", borderRadius:10, padding:16, marginBottom:20 }}>
+            <div style={{ color:"#555", fontSize:12, marginBottom:8, letterSpacing:"0.08em" }}>ANTHROPIC API-SLEUTEL</div>
+            <div style={{ display:"flex", gap:8 }}>
+              <input type={showKey?"text":"password"} value={apiKey} onChange={e=>saveKey(e.target.value)}
+                placeholder="sk-ant-..."
+                style={{ flex:1, padding:"11px 12px", background:"#161616", border:"1px solid #2a2a2a", borderRadius:8, color:"#f0e8d8", fontSize:14, fontFamily:"Georgia, serif", outline:"none" }} />
+              <button onClick={()=>setShowKey(!showKey)}
+                style={{ padding:"11px 14px", background:"#161616", border:"1px solid #2a2a2a", borderRadius:8, color:"#555", cursor:"pointer", fontSize:14 }}>
+                {showKey?"🙈":"👁"}
+              </button>
+            </div>
+            <div style={{ color:"#2a2a2a", fontSize:12, marginTop:8 }}>
+              Haal je sleutel op via console.anthropic.com → API Keys
+            </div>
+          </div>
+
+          {wines.length<2 ? (
+            <div style={{ color:"#333", fontSize:16, textAlign:"center", paddingTop:20 }}>Voeg minstens 2 wijnen toe.</div>
+          ) : (
+            <>
+              <button onClick={analyse} disabled={loading}
+                style={{ width:"100%", padding:"16px", background:loading?"#111":`linear-gradient(135deg,${gold},#a07830)`, border:"none", borderRadius:12, color:loading?"#444":"#0d0d0d", fontSize:17, fontWeight:700, cursor:loading?"not-allowed":"pointer", marginBottom:20 }}>
+                {loading?"Analyseren...":"✦ Analyseer mijn profiel"}
+              </button>
+              {loading && <div style={{ textAlign:"center",color:gold,fontSize:18,marginBottom:16 }}>⏳ Even geduld...</div>}
+              {err && <div style={{ color:"#a05050",fontSize:14,padding:12,background:"#1a0a0a",borderRadius:8,marginBottom:16 }}>{err}</div>}
+              {result && (
+                <div style={{ background:"#0f0e08",border:"1px solid #1e1a08",borderRadius:12,padding:20,color:"#c8b870",fontSize:15,lineHeight:1.8,whiteSpace:"pre-wrap" }}>
+                  {result}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    }
+
+    function App() {
+      const [tab, setTab] = useState("journal");
+      const [wines, setWines] = useState([]);
+      const [step, setStep] = useState(1);
+      const [pending, setPending] = useState(null);
+
+      useEffect(() => {
+        try { const s=localStorage.getItem(STORAGE_KEY); if(s) setWines(JSON.parse(s)); } catch{}
+      }, []);
+
+      const saveWines = l => { setWines(l); try { localStorage.setItem(STORAGE_KEY,JSON.stringify(l)); } catch{} };
+      const handleSelect = w => { setPending(w); setStep(2); };
+      const handleConfirm = form => { setPending(form); setStep(3); };
+      const handleRate = rating => {
+        saveWines([{...pending, rating, id:Date.now()}, ...wines]);
+        setPending(null); setStep(1); setTab("journal");
+      };
+      const resetAdd = () => { setPending(null); setStep(1); };
+
+      return (
+        <div style={{ minHeight:"100vh", background:"#0d0d0d", color:"#e0d8c8", fontFamily:"Georgia, serif", maxWidth:500, margin:"0 auto" }}>
+          <div style={{ padding:"24px 20px 0" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div>
+                <div style={{ color:gold, fontSize:11, letterSpacing:"0.2em", marginBottom:4 }}>CAVE PRIVÉE</div>
+                <div style={{ fontSize:26, fontWeight:300, color:"#f0e8d8" }}>Wijnjournal</div>
+              </div>
+              <div style={{ fontSize:32 }}>🍷</div>
+            </div>
+            <div style={{ display:"flex", background:"#111", borderRadius:10, padding:4, marginBottom:24 }}>
+              {[["journal","📓 Journal"],["add","＋ Toevoegen"],["ai","✦ Sommelier"]].map(([id,label]) => (
+                <button key={id} onClick={()=>{setTab(id);if(id==="add")resetAdd();}}
+                  style={{ flex:1, padding:"11px 4px", border:"none", borderRadius:8, background:tab===id?gold:"transparent", color:tab===id?"#0d0d0d":"#444", fontSize:13, fontWeight:tab===id?700:400, cursor:"pointer" }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding:"0 20px 80px" }}>
+            {tab==="journal" && (
+              wines.length===0 ? (
+                <div style={{ textAlign:"center", paddingTop:80 }}>
+                  <div style={{ fontSize:60, marginBottom:16, opacity:0.2 }}>🍾</div>
+                  <div style={{ color:"#333", fontSize:18 }}>Jouw kelder is leeg</div>
+                  <div style={{ color:"#222", fontSize:14, marginTop:8 }}>Voeg je eerste wijn toe</div>
+                </div>
+              ) : (
+                <>
+                  {wines.filter(w=>w.rating===3).length>0 && (
+                    <div style={{ background:"#1a1500", border:`1px solid ${gold}33`, borderRadius:10, padding:"12px 16px", marginBottom:16 }}>
+                      <div style={{ color:gold, fontSize:14, fontWeight:600, marginBottom:4 }}>🏆 {wines.filter(w=>w.rating===3).length} kelderwijnen</div>
+                      <div style={{ color:"#555", fontSize:13 }}>{wines.filter(w=>w.rating===3).map(w=>w.name).join(", ")}</div>
+                    </div>
+                  )}
+                  {wines.map(w=><WineCard key={w.id} wine={w} onDelete={id=>saveWines(wines.filter(x=>x.id!==id))} />)}
+                </>
+              )
+            )}
+
+            {tab==="add" && (
+              <>
+                <div style={{ display:"flex", gap:6, marginBottom:28 }}>
+                  {[1,2,3].map(i=>(
+                    <div key={i} style={{ flex:1, height:3, borderRadius:2, background:i<=step?gold:"#1a1a1a", transition:"background 0.3s" }} />
+                  ))}
+                </div>
+                {step===1 && <SearchStep onSelect={handleSelect} />}
+                {step===2 && pending && <DetailsStep wine={pending} onConfirm={handleConfirm} onBack={()=>setStep(1)} />}
+                {step===3 && pending && <RateStep wine={pending} onRate={handleRate} onBack={()=>setStep(2)} />}
+              </>
+            )}
+
+            {tab==="ai" && <AITab wines={wines} />}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+
+</body>
+</html>
